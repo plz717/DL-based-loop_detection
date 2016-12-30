@@ -3,7 +3,8 @@
 from pcanet import PCANet
 import tensorflow as tf
 import numpy as np
-
+import random
+np.set_printoptions(threshold='nan')
 # convert files containing multple images in png format to
 # gray_scale images and pack them in
 # image batch[batch_num,height,width]
@@ -17,7 +18,7 @@ def convert_to_array_queue(files, files_num, height, width, channels):
     reader = tf.WholeFileReader()
     filename, content = reader.read(filename_queue)
     image = tf.image.decode_png(content, channels=channels)
-    resized_image = tf.image.resize_images(image,[height, width])
+    resized_image = tf.image.resize_images(image, [height, width])
     gray_images = tf.image.rgb_to_grayscale(resized_image)
 
     # step 4: Batching
@@ -37,12 +38,12 @@ def convert_to_array_queue(files, files_num, height, width, channels):
             image_total.append(image_array)
         # convert list to array
         image_total = np.array(image_total)  # (batch_num,height,width,1))
-        image_total=np.reshape(image_total,(batch_num,height,width))
+        image_total = np.reshape(image_total, (batch_num, height, width))
         num_examples = image_total.shape[0]
 
         coord.request_stop()
         coord.join(threads)
-    return image_total,num_examples
+    return image_total, num_examples
 
 
 height = 60
@@ -51,16 +52,16 @@ channels = 3
 files = "/home/ubuntu/PCANet-python3/rgb_png/*.png"
 files_num = 96
 
-images,num_examples = convert_to_array_queue(
+images, num_examples = convert_to_array_queue(
     files=files, files_num=files_num, height=height,
     width=width, channels=channels)
-#images= shuffle(images, random_state=0)
+images = random.shuffle(images)
 print(images)
 print(num_examples)
 print(images.shape)
 
 pcanet = PCANet(
-    image_shape=(60,80),
+    image_shape=(60, 80),
     filter_shape_l1=2, step_shape_l1=1, n_l1_output=4,
     filter_shape_l2=2, step_shape_l2=1, n_l2_output=4,
     block_shape=2
@@ -82,4 +83,3 @@ print("has excuted pcanet.transform")
 
 print(X_train)
 print(X_train.shape)
-
