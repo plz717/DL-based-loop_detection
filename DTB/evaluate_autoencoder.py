@@ -14,14 +14,14 @@ import argparse
 import importlib
 from datetime import datetime
 import math
-
+import numpy as np
 import tensorflow as tf
 from inputs.utils import InputType
 from models.utils import MODEL_SUMMARIES, tf_log, put_kernels_on_grid
 import utils
 
 
-def error(checkpoint_dir, model, dataset, input_type, device="/gpu:0"):
+def error(checkpoint_dir, model, dataset, input_type, device="/cpu:0"):
     """
     Read latest saved checkpoint and use it to evaluate the model
     Args:
@@ -37,8 +37,9 @@ def error(checkpoint_dir, model, dataset, input_type, device="/gpu:0"):
     with tf.Graph().as_default(), tf.device(device):
         # Get images and labels from the dataset
         # Use batch_size multiple of train set size and big enough to stay in GPU
-        batch_size = 200
-        images, _ = dataset.inputs(input_type=input_type, batch_size=batch_size)
+        batch_size =6
+        images = dataset.inputs(input_type=input_type, batch_size=batch_size)
+        print("images in evaluate is:",np.array(images))
 
         # Build a Graph that computes the reconstructions predictions from the
         # inference model.
@@ -72,6 +73,11 @@ def error(checkpoint_dir, model, dataset, input_type, device="/gpu:0"):
 
                 num_iter = int(
                     math.ceil(dataset.num_examples(input_type) / batch_size))
+                print("dataset.num_examples is:",dataset.num_examples(input_type))
+                #print("input type is :",input_type)               
+                #print("batch_size is:",batch_size)
+                #print("math.ceil is :",math.ceil(dataset.num_examples(input_type) / batch_size))
+                #print("num_iter is:",num_iter)
                 step = 0
                 average_error = 0.0
                 while step < num_iter and not coord.should_stop():
