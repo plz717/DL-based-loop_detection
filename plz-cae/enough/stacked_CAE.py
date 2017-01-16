@@ -69,11 +69,8 @@ width = 640
 depth = 1  # depth of train_dataset
 
 # convolution parameters
-filter_side = 3
 stride = 1
-filters_number = 32
-amount = filter_side - 1
-num_layers = 1
+num_layers = 6
 
 files = DATA_SET_DIR + "*.jpg"
 
@@ -89,26 +86,28 @@ input_images = tf.placeholder(
     tf.float32, [None, height, width, depth])  # batch,480,640,1
 input_x = tf.identity(input_images)
 
-CONV_1_W = [0] * num_layers
-CONV_1_b = [0] * num_layers
-CONV_2_W = [0] * num_layers
-CONV_2_b = [0] * num_layers
-DE_W = [0] * num_layers
+CONV_1_W = [0] * num_layers  #W1
+CONV_1_b = [0] * num_layers  #b1
+CONV_2_W = [0] * num_layers  #W2
+CONV_2_b = [0] * num_layers  #b2
+DE_W = [0] * num_layers     #decode layer W&b
 DE_b = [0] * num_layers
 # initialize  the list containing num_layers weight matrix
 for i in range(num_layers):
     # encode layer W&b
-    # shape1 = [filter_side, filter_side, pad_input.get_shape()[3].value,
-             # filters_number]  # 3,3,1,32
+    #filter size:3*3
+    #input_depth:1   output_depth:32
     CONV_1_W[i] = tf.Variable(tf.random_normal(
         [3, 3, 1, 32]), dtype=tf.float32)
     CONV_1_b[i] = tf.Variable(tf.zeros([32]), dtype=tf.float32)  # 32
+   
+    #filter size:3*3
+    #input_depth:32   output_depth:20   
     CONV_2_W[i] = tf.Variable(tf.random_normal(
         [3, 3, 32, 20]), dtype=tf.float32)
     CONV_2_b[i] = tf.Variable(tf.zeros([20]), dtype=tf.float32)  # 20
 
     # decode layer W&b
-    # shape2 = [filter_side, filter_side, filters_number,20]  # 3,3,20,1
     DE_W[i] = tf.Variable(tf.random_normal([3, 3, 20, 1]), dtype=tf.float32)
     DE_b[i] = tf.Variable(tf.zeros([1]), dtype=tf.float32)
 
@@ -130,7 +129,7 @@ for i in range(num_layers):
     pool2 = tf.nn.max_pool(conv2, [1, 3, 3, 1], [
         1, 3, 3, 1], 'VALID')  # batch,8,11,20
 
-    encode_dropout = tf.nn.dropout(pool2, 0.5)
+    encode_dropout = tf.nn.dropout(pool2, 0.5)  #only needed while training
 
     # padding to make it the same size of input_image(batch,480,640,32)
     pad_for_decode = tf.pad(encode_dropout, [[0, 0], [237, 237], [
@@ -195,13 +194,13 @@ with tf.Session() as sess:
         input_x = tf.identity(input_image)
 
         for i in range(num_layers):
-            conv1 = tf.nn.bias_add(tf.nn.conv2d(input_x, CONV_1_W[i], [1, 3, 3, 1], 'VALID'), CONV_1_b[i])  # batch,160,213,32
+            conv1 = tf.nn.bias_add(tf.nn.conv2d(input_x, CONV_1_W[i], [1, 3, 3, 1], 'VALID'), CONV_1_b[i])  # 1,160,213,32
             conv1 = tf.nn.tanh(conv1)
             #print("conv1 is:", conv1)
             # only apply this when training
 
             pool1 = tf.nn.max_pool(conv1, [1, 2, 2, 1], [
-                1, 2, 2, 1], 'VALID')  # batch,80,106,32
+                1, 2, 2, 1], 'VALID')  # 1,80,106,32
             #print("max_pool is:", pool1)
 
             conv2 = tf.nn.bias_add(tf.nn.conv2d(
@@ -210,18 +209,18 @@ with tf.Session() as sess:
             #print("conv2 is:", conv2)
 
             pool2 = tf.nn.max_pool(conv2, [1, 3, 3, 1], [
-                1, 3, 3, 1], 'VALID')  # batch,8,11,20
+                1, 3, 3, 1], 'VALID')  # 1,8,11,20
 
             #print("pool_2 is :", pool2)
 
-            # padding to make it the same size of input_image(batch,480,640,32)
+            # padding to make it the same size of input_image(1,480,640,32)
             pad_for_decode = tf.pad(pool2, [[0, 0], [237, 237], [
-                316, 315], [0, 0]])  # batch,482,642,20
+                316, 315], [0, 0]])  # 1,482,642,20
             #print("pool_pad is :", pad_for_decode)
 
             # decode layer
             decode_result = tf.nn.bias_add(tf.nn.conv2d(
-                pad_for_decode, DE_W[i], [1, stride, stride, 1], 'VALID'), DE_b[i])  # batch,480,640,1
+                pad_for_decode, DE_W[i], [1, stride, stride, 1], 'VALID'), DE_b[i])  # 1,480,640,1
             decode = tf.nn.tanh(decode_result)
             #print("decode is:", decode)
             #print("input_x is:", input_x)
@@ -236,8 +235,6 @@ with tf.Session() as sess:
     #print("feature0 is: ", features_list[0])
     print("feature0 shape is:", (features_list[0].shape))
 
-    # dum features_array_list into a test.txt file
-    # with open("test_multi_layers.txt", "wb") as fp:
-    #pickle.dump(features_list, fp)
+    # dump features_array_list into a test.txt file
     with open("stacked_CAE_features.txt", "wb") as fp:
         pickle.dump(features_list, fp)
