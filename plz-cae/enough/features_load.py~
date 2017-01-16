@@ -1,0 +1,5 @@
+import pickle
+
+
+with open("test.txt","rb") as fp:
+        feature_array_list=pickle.load(fp)
