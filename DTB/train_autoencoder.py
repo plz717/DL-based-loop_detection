@@ -40,7 +40,7 @@ def train():
 
         # Get images and labels for CIFAR-10.
         images = DATASET.distorted_inputs(BATCH_SIZE)
-
+        print("images  array is :",np.array(images))
         # Build a Graph that computes the reconstructions predictions from the
         # inference model.
         is_training_, reconstructions = MODEL.get(images,
@@ -113,6 +113,7 @@ def train():
                 checkpoint = tf.train.latest_checkpoint(LOG_DIR)
                 if checkpoint:
                     train_saver.restore(sess, checkpoint)
+                    print("has restored.")
                 else:
                     print("[I] Unable to restore from checkpoint")
 
@@ -161,6 +162,7 @@ def train():
                 if (step > 0 and
                         step % STEPS_PER_EPOCH == 0) or (step + 1) == MAX_STEPS:
                     checkpoint_path = os.path.join(LOG_DIR, 'model.ckpt')
+                    print("model has been kept.")
                     train_saver.save(sess, checkpoint_path, global_step=step)
 
                     # validation error
@@ -231,7 +233,7 @@ if __name__ == '__main__':
         "momentum": 0.9
     }''')
     PARSER.add_argument("--batch_size", type=int, default=128)
-    PARSER.add_argument("--epochs", type=int, default=150)
+    PARSER.add_argument("--epochs", type=int, default=30)
 
     # Hardware
     PARSER.add_argument("--train_device", default="/gpu:0")
